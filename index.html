@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chemin 2027</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#666; --map:#e8e8e8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111; --fg:#eee; --muted:#999; --map:#222; }
+  }
+  body { font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg);
+         margin:0 auto; padding:16px; max-width:480px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .muted { color:var(--muted); font-size:.9rem; }
+  #map { height:300px; margin:16px 0; border-radius:8px; background:var(--map); }
+  ul { list-style:none; padding:0; }
+  li { padding:8px 0; border-bottom:1px solid var(--muted); }
+  li small { display:block; color:var(--muted); }
+</style>
+</head>
+<body>
+<h1 id="title">🐚 Chemin</h1>
+<div class="muted" id="desc"></div>
+<div id="map"></div>
+<ul id="wpts"></ul>
+<div class="muted" id="stats"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(async () => {
+  const text = (el, tag) => {
+    const n = el.getElementsByTagName(tag)[0];
+    return n ? n.textContent : "";
+  };
+  try {
+    const res = await fetch("camino.gpx");
+    const xml = new DOMParser().parseFromString(await res.text(), "application/xml");
+
+    const name = text(xml, "name");
+    document.title = name;
+    document.getElementById("title").textContent = "🐚 " + name;
+    document.getElementById("desc").textContent =
+      text(xml.getElementsByTagName("metadata")[0], "desc");
+
+    const track = [...xml.getElementsByTagName("trkpt")]
+      .map(p => [+p.getAttribute("lat"), +p.getAttribute("lon")]);
+    const wpts = [...xml.getElementsByTagName("wpt")];
+
+    const map = L.map("map");
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    const line = L.polyline(track, { color: "#d4a000", weight: 4 }).addTo(map);
+    const ul = document.getElementById("wpts");
+    wpts.forEach(w => {
+      const n = text(w, "name"), d = text(w, "desc");
+      L.marker([+w.getAttribute("lat"), +w.getAttribute("lon")])
+        .addTo(map).bindPopup(
+          Object.assign(document.createElement("div"), { textContent: n + (d ? " – " + d : "") }));
+      const li = document.createElement("li");
+      li.textContent = n;
+      const s = document.createElement("small");
+      s.textContent = d;
+      li.appendChild(s);
+      ul.appendChild(li);
+    });
+    map.fitBounds(line.getBounds(), { padding: [20, 20] });
+
+    const t0 = text(xml.getElementsByTagName("trkpt")[0], "time").slice(0, 10);
+    document.getElementById("stats").textContent =
+      "Début : " + t0 + " · " + track.length + " points";
+  } catch (e) {
+    document.getElementById("desc").textContent = "Erreur de chargement : " + e.message;
+  }
+})();
+</script>
+</body>
+</html>
