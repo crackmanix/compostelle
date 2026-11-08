@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="camino.xsl"?>
 <gpx version="1.1" creator="exemple" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>Chemin 2027 - test</name>
@@ -20,14 +21,23 @@
   </wpt>
 
   <trk>
-    <name>Tronçon test</name>
+    <name>Tronçon 1 (test)</name>
     <trkseg>
       <trkpt lat="50.3800" lon="3.4000"><ele>35</ele><time>2027-05-01T07:30:00Z</time></trkpt>
       <trkpt lat="50.3760" lon="3.4300"><ele>38</ele><time>2027-05-01T08:15:00Z</time></trkpt>
       <trkpt lat="50.3680" lon="3.4800"><ele>31</ele><time>2027-05-01T09:20:00Z</time></trkpt>
       <trkpt lat="50.3570" lon="3.5230"><ele>28</ele><time>2027-05-01T10:30:00Z</time></trkpt>
-      <trkpt lat="50.3450" lon="3.5800"><ele>40</ele><time>2027-05-01T12:00:00Z</time></trkpt>
-      <trkpt lat="50.3250" lon="3.6600"><ele>45</ele><time>2027-05-01T14:10:00Z</time></trkpt>
     </trkseg>
+  </trk>
+  <trk>
+    <name>Tronçon 2 (test)</name>
+    <trkseg>
+      <trkpt lat="50.3570" lon="3.5230"><ele>28</ele><time>2027-05-02T07:30:00Z</time></trkpt>
+      <trkpt lat="50.3450" lon="3.5800"><ele>40</ele><time>2027-05-02T09:00:00Z</time></trkpt>
+      <trkpt lat="50.3250" lon="3.6600"><ele>45</ele><time>2027-05-02T11:10:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+  <trk>
+    <name>Tronçon 3 (à venir)</name>
   </trk>
 </gpx>
