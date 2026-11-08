@@ -14,7 +14,7 @@
          margin:0 auto; padding:16px; max-width:480px; }
   h1 { font-size:1.4rem; margin:0 0 4px; }
   .muted { color:var(--muted); font-size:.9rem; }
-  #map { height:300px; margin:16px 0; border-radius:8px; background:var(--map); }
+  #map, #legmap { height:300px; margin:16px 0; border-radius:8px; background:var(--map); }
   .tabs { display:flex; gap:8px; margin-top:12px; }
   .tabs button { flex:1; padding:8px; font:inherit; color:var(--fg); background:transparent;
                  border:1px solid var(--muted); border-radius:8px; }
@@ -23,6 +23,7 @@
                  font:inherit; color:var(--fg); background:transparent;
                  border:1px solid var(--muted); border-left-width:6px; border-radius:8px; }
   #legs button:disabled { opacity:.5; }
+  #legs button[aria-pressed="true"] { background:var(--map); }
   #legs small { display:block; color:var(--muted); }
   ul { list-style:none; padding:0; }
   li { padding:8px 0; border-bottom:1px solid var(--muted); }
@@ -33,7 +34,7 @@
 <h1 id="title">🐚 Chemin</h1>
 <div class="muted" id="desc"></div>
 <div role="tablist" class="tabs">
-  <button role="tab" data-tab="map" aria-selected="true">Carte</button>
+  <button role="tab" data-tab="map" aria-selected="true">Trajet</button>
   <button role="tab" data-tab="legs" aria-selected="false">Tronçons</button>
 </div>
 <section class="panel" id="tab-map">
@@ -41,6 +42,7 @@
   <ul id="wpts"></ul>
 </section>
 <section class="panel" id="tab-legs" hidden>
+  <div id="legmap"></div>
   <div id="legs"></div>
 </section>
 <div class="muted" id="stats"></div>
@@ -66,17 +68,23 @@
       .map(p => [+p.getAttribute("lat"), +p.getAttribute("lon")]);
     const wpts = [...xml.getElementsByTagName("wpt")];
 
-    const map = L.map("map");
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(map);
+    const mkMap = id => {
+      const m = L.map(id);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(m);
+      return m;
+    };
+    const map = mkMap("map");        // onglet Trajet : vue d'ensemble
+    const legMap = mkMap("legmap");  // onglet Tronçons : exploration d'un tronçon
 
     const showTab = id => {
       document.querySelectorAll("[data-tab]").forEach(b =>
         b.setAttribute("aria-selected", b.dataset.tab === id));
       document.querySelectorAll(".panel").forEach(p => p.hidden = p.id !== "tab-" + id);
       if (id === "map") map.invalidateSize();
+      if (id === "legs") { legMap.invalidateSize(); focusLeg(); }
     };
     document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => showTab(b.dataset.tab));
 
@@ -91,12 +99,23 @@
       const times = trkpts.map(p => text(p, "time")).filter(Boolean);
       const color = colors[i % colors.length];
       const line = pts.length ? L.polyline(pts, { color, weight: 4 }).addTo(map) : null;
-      return { name: text(t, "name") || "Tronçon " + (i + 1), pts, line, color,
+      const line2 = pts.length ? L.polyline(pts, { color, weight: 3, opacity: 0.35 }).addTo(legMap) : null;
+      return { name: text(t, "name") || "Tronçon " + (i + 1), pts, line, line2, color,
                from: times[0], to: times[times.length - 1], km: km(pts) };
     });
     const drawn = legs.filter(l => l.line);
 
     const legsEl = document.getElementById("legs");
+    let selected = drawn[0] || null;
+    const focusLeg = () => {
+      legs.forEach(o => o.btn && o.btn.setAttribute("aria-pressed", o === selected));
+      if (!selected) return;
+      // fitBounds d'abord : Leaflet n'ajoute les tracés au DOM qu'une fois la vue définie
+      legMap.fitBounds(selected.line2.getBounds(), { padding: [30, 30] });
+      drawn.forEach(o => o.line2.setStyle(
+        o === selected ? { weight: 6, opacity: 1 } : { weight: 3, opacity: 0.35 }));
+      selected.line2.bringToFront();
+    };
     legs.forEach(l => {
       const b = document.createElement("button");
       b.style.borderLeftColor = l.color;
@@ -109,14 +128,14 @@
       b.append(h, s);
       if (l.line) {
         b.onclick = () => {
-          showTab("map");
-          drawn.forEach(o => o.line.setStyle({ weight: o === l ? 7 : 3 }));
-          l.line.bringToFront();
-          map.fitBounds(l.line.getBounds(), { padding: [30, 30] });
+          selected = l;
+          focusLeg();
+          document.getElementById("legmap").scrollIntoView({ behavior: "smooth", block: "nearest" });
         };
       } else {
         b.disabled = true;
       }
+      l.btn = b;
       legsEl.appendChild(b);
     });
     const ul = document.getElementById("wpts");
